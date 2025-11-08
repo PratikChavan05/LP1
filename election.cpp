@@ -32,10 +32,9 @@ public:
         cin >> crash;
         cout << "Enter process ID that initiates election: ";
         cin >> initiator;
-
-        if (find(processes.begin(), processes.end(), initiator) == processes.end())
+        if (crash == initiator || find(processes.begin(), processes.end(), initiator) == processes.end())
         {
-            cout << "Invalid initiator!\n";
+            cout << "Initiator is crashed or invalid! Cannot start election.\n";
             return;
         }
 
@@ -44,11 +43,7 @@ public:
             if (pid != crash)
                 alive.push_back(pid);
 
-        if (find(alive.begin(), alive.end(), initiator) == alive.end())
-        {
-            cout << "Initiator is crashed! Cannot start election.\n";
-            return;
-        }
+        
 
         cout << "\n========== BULLY ALGORITHM SIMULATION ==========\n";
         sleep(1);
