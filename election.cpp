@@ -1,22 +1,22 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
-#include <unistd.h> 
+#include <unistd.h> // for sleep()
 using namespace std;
 
 class Election
 {
-    int n;
     vector<int> processes;
     int coordinator;
 
 public:
-    void inputProcesses()
+    void input()
     {
+        int n;
         cout << "Enter number of processes: ";
         cin >> n;
         processes.resize(n);
-        cout << "Enter process IDs (any order): ";
+        cout << "Enter process IDs: ";
         for (int i = 0; i < n; i++)
             cin >> processes[i];
 
@@ -25,161 +25,120 @@ public:
         cout << "\nInitial Coordinator: Process " << coordinator << "\n";
     }
 
-    void bullyAlgorithm()
+    void bully()
     {
         int crash, initiator;
-        cout << "\nEnter process ID that crashed: ";
-        cin >> crash;
-        cout << "Enter process ID that initiates election: ";
+        cout << "The cordinator process :" << coordinator << "Crashed" << endl;
+        crash = coordinator;
+        cout << "Enter election initiator process ID: ";
         cin >> initiator;
-        if (crash == initiator || find(processes.begin(), processes.end(), initiator) == processes.end())
-        {
-            cout << "Initiator is crashed or invalid! Cannot start election.\n";
-            return;
-        }
 
-        vector<int> alive;
-        for (int pid : processes)
-            if (pid != crash)
-                alive.push_back(pid);
-
-        
-
-        cout << "\n========== BULLY ALGORITHM SIMULATION ==========\n";
-        sleep(1);
-
-        cout << "\n[PHASE 1: Election Initiation]\n";
-        cout << "Process " << initiator << " detected coordinator crash.\n";
-        cout << "Process " << initiator << " starts election...\n\n";
-        sleep(1);
-
-        vector<int> higher;
-        for (int pid : alive)
-            if (pid > initiator)
-                higher.push_back(pid);
-
-        if (higher.empty())
-        {
-            cout << "No higher processes found.\n";
-            cout << "Process " << initiator << " declares itself as Coordinator!\n";
-            coordinator = initiator;
-        }
-        else
-        {
-            cout << "Process " << initiator << " sends ELECTION to higher processes:\n";
-            for (int pid : higher)
-            {
-                cout << "  → ELECTION sent to Process " << pid << "\n";
-                sleep(1);
-            }
-
-            cout << "\n[PHASE 2: Higher Processes Respond]\n";
-            for (int pid : higher)
-            {
-                cout << "Process " << pid << " responds: OK to Process " << initiator << "\n";
-                sleep(1);
-            }
-
-            cout << "\n[PHASE 3: Higher Processes Start Elections]\n";
-            for (size_t i = 0; i < higher.size(); i++)
-            {
-                int current = higher[i];
-                cout << "\nProcess " << current << " starts its own election:\n";
-
-                bool hasHigher = false;
-                for (size_t j = i + 1; j < higher.size(); j++)
-                {
-                    cout << "  → ELECTION sent to Process " << higher[j] << "\n";
-                    hasHigher = true;
-                    sleep(1);
-                }
-
-                if (hasHigher)
-                    cout << "  Process " << current << " receives OK from higher processes\n";
-                else
-                    cout << "  No higher processes found!\n";
-                sleep(1);
-            }
-
-            int newCoordinator = higher.back();
-            cout << "\n[PHASE 4: Coordinator Announcement]\n";
-            cout << "Process " << newCoordinator << " (highest ID) becomes new Coordinator!\n";
-            sleep(1);
-            cout << "\nProcess " << newCoordinator << " sends COORDINATOR message to all:\n";
-            for (int pid : alive)
-                if (pid != newCoordinator)
-                    cout << "  → Process " << pid << " acknowledges new coordinator\n";
-
-            coordinator = newCoordinator;
-        }
-
-        cout << "\n========== ELECTION COMPLETE ==========\n";
-        cout << "New Coordinator: Process " << coordinator << "\n";
-    }
-
-    void ringAlgorithm()
-    {
-        int initiator, crash;
-        cout << "\nEnter process ID initiating election: ";
-        cin >> initiator;
-        cout << "Enter crashed process ID (-1 if none): ";
-        cin >> crash;
-
-        vector<int> active;
-        for (int pid : processes)
-            if (pid != crash)
-                active.push_back(pid);
-
-        if (find(active.begin(), active.end(), initiator) == active.end())
+        if (find(processes.begin(), processes.end(), initiator) == processes.end())
         {
             cout << "Invalid initiator!\n";
             return;
         }
 
-        cout << "\n========== RING ALGORITHM SIMULATION ==========\n";
+        vector<int> alive;
+        for (int p : processes)
+            if (p != crash)
+                alive.push_back(p);
+
+        cout << "\n--- Bully Algorithm Simulation ---\n";
+        cout << "Process " << initiator << " notices that coordinator (Process " << crash << ") has crashed.\n";
         sleep(1);
-        cout << "\n[PHASE 1: Election Message Circulation]\n";
+
+        cout << "\nProcess " << initiator << " sends ELECTION messages to all higher processes:\n";
+        bool foundHigher = false;
+        for (int p : alive)
+        {
+            if (p > initiator)
+            {
+                cout << " → Sent to Process " << p << "\n";
+                sleep(1);
+                foundHigher = true;
+            }
+        }
+
+        if (!foundHigher)
+        {
+            cout << "No higher process found. Process " << initiator << " becomes new Coordinator!\n";
+            coordinator = initiator;
+            return;
+        }
+
+        cout << "\nHigher processes respond with OK messages...\n";
+        sleep(1);
+
+        int newCoordinator = alive.back(); // highest alive process
+        cout << "\nProcess " << newCoordinator << " has the highest ID.\n";
+        sleep(1);
+        cout << "Process " << newCoordinator << " becomes the new Coordinator!\n";
+        sleep(1);
+
+        cout << "\nCoordinator message sent to all other processes...\n";
+        for (int p : alive)
+            if (p != newCoordinator)
+                cout << " → Process " << p << " acknowledges new Coordinator " << newCoordinator << "\n";
+
+        coordinator = newCoordinator;
+        cout << "\nElection Complete. New Coordinator: Process " << coordinator << "\n";
+    }
+
+    void ring()
+    {
+        int initiator, crash;
+        cout << "\nEnter election initiator process ID: ";
+        cin >> initiator;
+        cout << "The cordinator process :" << coordinator << "Crashed" << endl;
+        crash = coordinator;
+
+        vector<int> alive;
+        for (int p : processes)
+            if (p != crash)
+                alive.push_back(p);
+
+        if (find(alive.begin(), alive.end(), initiator) == alive.end())
+        {
+            cout << "Invalid initiator!\n";
+            return;
+        }
+
+        cout << "\n--- Ring Algorithm Simulation ---\n";
+        int start = find(alive.begin(), alive.end(), initiator) - alive.begin();
+        vector<int> message;
         cout << "Process " << initiator << " starts election.\n";
         sleep(1);
 
-        int start = find(active.begin(), active.end(), initiator) - active.begin();
-        vector<int> electionMsg = {initiator};
-
-        for (size_t i = 1; i < active.size(); i++)
+        for (int i = 0; i < alive.size(); i++)
         {
-            int next = active[(start + i) % active.size()];
-            electionMsg.push_back(next);
-            cout << "Process " << electionMsg[i - 1] << " forwards to Process " << next << " | Message: [ ";
-            for (int id : electionMsg)
-                cout << id << " ";
-            cout << "]\n";
+            int current = alive[(start + i) % alive.size()];
+            int next = alive[(start + i + 1) % alive.size()];
+            message.push_back(current);
+            cout << "Process " << current << " passes election message to Process " << next << " [";
+            for (int id : message)
+                cout << " " << id;
+            cout << " ]\n";
             sleep(1);
         }
 
-        cout << "\n[PHASE 2: Message Returns to Initiator]\n";
-        cout << "Election message returns to Process " << initiator << "\n";
+        cout << "\nMessage returns to initiator. Election message complete.\n";
         sleep(1);
 
-        int newCoordinator = *max_element(electionMsg.begin(), electionMsg.end());
-        cout << "\n[PHASE 3: Coordinator Election]\n";
-        cout << "Highest ID found = Process " << newCoordinator << "\n";
+        int newCoordinator = *max_element(message.begin(), message.end());
+        cout << "Highest ID = Process " << newCoordinator << " → New Coordinator!\n";
         sleep(1);
 
-        cout << "\n[PHASE 4: Coordinator Announcement]\n";
-        cout << "Process " << newCoordinator << " announces itself as Coordinator!\n";
-        sleep(1);
-
-        cout << "\nCoordinator message sent around ring:\n";
-        for (int pid : active)
-            if (pid != newCoordinator)
-                cout << "  → Process " << pid << " acknowledges Coordinator " << newCoordinator << "\n";
+        cout << "\nCoordinator message circulating in ring...\n";
+        for (int p : alive)
+            if (p != newCoordinator)
+                cout << " → Process " << p << " acknowledges Coordinator " << newCoordinator << "\n";
 
         coordinator = newCoordinator;
-        cout << "\n========== ELECTION COMPLETE ==========\n";
-        cout << "New Coordinator: Process " << coordinator << "\n";
+        cout << "\nElection Complete. New Coordinator: Process " << coordinator << "\n";
     }
 
-    void displayCoordinator()
+    void show()
     {
         cout << "\nCurrent Coordinator: Process " << coordinator << "\n";
     }
@@ -188,26 +147,26 @@ public:
 int main()
 {
     Election e;
-    int choice;
-    cout << "\n--- ELECTION ALGORITHMS SIMULATION ---\n";
-    e.inputProcesses();
+    int ch;
+    cout << "\n===== ELECTION ALGORITHM SIMULATION =====\n";
+    e.input();
 
     do
     {
-        cout << "\n1. Simulate Bully Algorithm\n2. Simulate Ring Algorithm\n3. Show Current Coordinator\n4. Exit\n";
+        cout << "\n1. Bully Algorithm\n2. Ring Algorithm\n3. Show Coordinator\n4. Exit\n";
         cout << "Enter choice: ";
-        cin >> choice;
+        cin >> ch;
 
-        switch (choice)
+        switch (ch)
         {
         case 1:
-            e.bullyAlgorithm();
+            e.bully();
             break;
         case 2:
-            e.ringAlgorithm();
+            e.ring();
             break;
         case 3:
-            e.displayCoordinator();
+            e.show();
             break;
         case 4:
             cout << "Exiting simulation...\n";
@@ -215,7 +174,7 @@ int main()
         default:
             cout << "Invalid choice!\n";
         }
-    } while (choice != 4);
+    } while (ch != 4);
 
     return 0;
 }
